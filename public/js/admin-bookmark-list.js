@@ -7,6 +7,7 @@
   const searchInput = document.getElementById('searchInput');
   const categoryFilter = document.getElementById('categoryFilter');
   const pageSizeSelect = document.getElementById('pageSizeSelect');
+  const SEARCH_DEBOUNCE_MS = 300;
 
   let currentPage = 1;
   let pageSize = 50;
@@ -336,7 +337,7 @@
           currentSearchKeyword = e.target.value.trim();
           currentPage = 1;
           fetchConfigs(currentPage, currentSearchKeyword, currentCategoryFilter);
-        }, 300);
+        }, SEARCH_DEBOUNCE_MS);
       });
     }
 
