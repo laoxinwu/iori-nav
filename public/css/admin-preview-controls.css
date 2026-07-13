@@ -133,7 +133,7 @@
 }
 
 .live-category-nav {
-  width: min(100%, 46rem);
+  width: min(100%, 64rem); /* 与首页 max-w-5xl 一致 */
   min-width: 0;
   max-width: 100%;
   display: flex;
@@ -191,7 +191,7 @@
   justify-content: center;
   gap: 0.25rem;
   max-width: 100%;
-  min-width: min(calc(4em + 2rem), 100%);
+  min-width: calc(4em + 2rem); /* 至少 4 字宽 */
   height: 2.5rem;
   border-radius: 999px;
   border: 1px solid transparent;
@@ -526,7 +526,7 @@
 }
 
 .home-live-preview.uses-card-style-3:not([data-device="mobile"]) .live-category-nav {
-  gap: 0;
+  gap: 0.75rem; /* 与首页 gap-3 一致 */
 }
 
 .home-live-preview.uses-card-style-3:not([data-device="mobile"]) .live-category-nav > .live-category-item > .live-category-button,
@@ -536,7 +536,7 @@
   position: relative;
   flex: 0 0 auto;
   width: auto;
-  min-width: 0;
+  min-width: calc(4em + 2rem);
   height: auto;
   padding: 0.45rem 1.05rem;
   border: 0;

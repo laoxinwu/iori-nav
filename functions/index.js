@@ -300,12 +300,16 @@ export async function onRequest(context) {
   const categoryPosition = normalizeCategoryPosition(S.home_category_position, S.layout_menu_layout);
   const isHorizontalCategoryLayout = categoryPosition !== 'left';
   const categoryFlow = S.home_category_flow === 'multi_line' ? 'multi_line' : 'single_line';
+  // 分类行宽度 max-w-5xl（64rem），按钮 min-width: 4em+2rem，单行约 8 个
   const horizontalCategoryNavShellClass = categoryPosition === 'top'
-    ? 'horizontal-category-nav-shell is-top relative max-w-5xl mx-auto'
-    : 'horizontal-category-nav-shell relative max-w-5xl mx-auto';
+    ? 'horizontal-category-nav-shell is-top relative mx-auto'
+    : 'horizontal-category-nav-shell relative mx-auto';
   const horizontalCategoryNavJustifyClass = categoryFlow === 'multi_line' ? 'justify-start' : 'justify-center';
-  const horizontalCategoryNavOverflowClass = categoryFlow === 'multi_line' ? 'overflow-visible' : 'overflow-hidden';
-  const horizontalCategoryNavStyle = categoryFlow === 'multi_line' ? '' : ' style="max-height: 60px;"';
+  // 单行：nowrap + 宽度折叠（与预览一致）；多行：wrap 且无 more
+  const horizontalCategoryNavWrapClass = categoryFlow === 'multi_line' ? 'flex-wrap' : 'flex-nowrap';
+  // 单行也用 overflow-visible：overflow-hidden 会裁切多级下拉与「更多」弹出层
+  const horizontalCategoryNavOverflowClass = 'overflow-visible';
+  const horizontalCategoryNavFlowClass = categoryFlow === 'multi_line' ? 'is-multi-line' : 'is-single-line';
   const horizontalMoreHtml = categoryFlow === 'multi_line' ? '' : `
           <div id="horizontalMoreWrapper" class="relative hidden">
             <button id="horizontalMoreBtn" class="nav-btn inactive">
@@ -315,7 +319,7 @@ export async function onRequest(context) {
           </div>`;
   const horizontalCategoryNavHtml = `
       <div class="${horizontalCategoryNavShellClass}">
-        <div id="horizontalCategoryNav" class="flex flex-wrap ${horizontalCategoryNavJustifyClass} items-center gap-3 ${horizontalCategoryNavOverflowClass} transition-all duration-300"${horizontalCategoryNavStyle}>
+        <div id="horizontalCategoryNav" class="flex ${horizontalCategoryNavWrapClass} ${horizontalCategoryNavJustifyClass} items-center gap-3 ${horizontalCategoryNavOverflowClass} ${horizontalCategoryNavFlowClass} transition-all duration-300">
           ${horizontalCatalogMarkup}
           ${horizontalMoreHtml}
         </div>

@@ -377,6 +377,35 @@ body:not(.app-ready) #sidebar a[href="?catalog=all"] {
 .custom-wallpaper .nav-btn.active { background-color: #2563eb; color: white; }
 .dark.custom-wallpaper .nav-btn.active { background-color: #2563eb !important; color: white !important; }
 
+/* 分类行宽度：与 header max-w-5xl 一致，配合 min-width: 4em+2rem 约可单行展示 8 个分类 */
+.horizontal-category-nav-shell {
+  width: min(100%, 64rem); /* max-w-5xl */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+#horizontalCategoryNav {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#horizontalCategoryNav.is-single-line {
+  flex-wrap: nowrap;
+}
+
+/* 分类导航：允许多级下拉与「更多」弹出层溢出显示 */
+.horizontal-category-nav-shell,
+#horizontalCategoryNav,
+#horizontalMoreWrapper {
+  overflow: visible !important;
+}
+
+
+#horizontalCategoryNav.is-multi-line {
+  flex-wrap: wrap;
+}
+
 .horizontal-category-nav-shell.is-top {
   padding-left: 4.5rem;
   padding-right: 10.5rem;
@@ -1119,11 +1148,10 @@ body .search-engine-option.active {
   /* 风格三分类：Nav-Item 式白字 + 底部蓝线，间距更疏 */
   body.desktop-page-style3 #horizontalCategoryNav {
     display: flex;
-    flex-wrap: wrap;
-    /* flex-start 避免 height:auto 时同行 offsetTop 不一致误触发溢出折叠 */
-    align-items: flex-start;
+    /* wrap/nowrap 由 .is-single-line / .is-multi-line 控制 */
+    align-items: center;
     justify-content: center;
-    gap: 0.15rem 0.45rem;
+    /* 使用 HTML gap-3（0.75rem），不强制 gap:0，保证与风格一/二单行密度接近 */
   }
 
   body.desktop-page-style3 .menu-item-wrapper {
@@ -1144,7 +1172,7 @@ body .search-engine-option.active {
     align-items: center;
     justify-content: center;
     width: auto !important;
-    min-width: 0 !important;
+    min-width: calc(4em + 2rem) !important; /* 至少 4 字宽，与风格一/二一致 */
     height: auto !important;
     min-height: 0 !important;
     margin: 0;
@@ -1233,8 +1261,8 @@ body .search-engine-option.active {
 
   body.desktop-page-style3.category-pos-top .horizontal-category-nav-shell,
   body.desktop-page-style3.category-pos-top .horizontal-category-nav-shell.is-top {
-    max-width: min(72rem, 100%);
-    width: 100%;
+    max-width: min(64rem, 100%);
+    width: min(100%, 64rem);
     margin-left: auto;
     margin-right: auto;
     /* 左右避开角标：左预留侧栏按钮，右预留主题+后台 */
@@ -1391,8 +1419,7 @@ body .search-engine-option.active {
 
   body.mobile-page-style3 #horizontalCategoryNav {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     gap: 0.1rem;
   }
@@ -1406,7 +1433,7 @@ body .search-engine-option.active {
   html.dark body.mobile-page-style3 .nav-btn {
     position: relative;
     width: auto !important;
-    min-width: 0 !important;
+    min-width: calc(4em + 2rem) !important;
     height: auto !important;
     min-height: 0 !important;
     padding: 0.4rem 0.8rem 0.55rem !important;

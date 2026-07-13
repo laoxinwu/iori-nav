@@ -25,17 +25,33 @@
         moreBtn.classList.add('inactive');
       };
 
-      // 单行模式的原始 max-height（来自 SSR inline style），用于每次重算前恢复
-      const singleLineMaxHeight = navContainer.style.maxHeight || '60px';
-
       const getCategories = () => Array.from(navContainer.children).filter(el => el !== moreWrapper);
 
-      const fitsSingleLine = () => {
-        // 用内容高度判断是否换行：不依赖 offsetTop。
-        // 风格三 height:auto 时同行元素 top 可能差几 px，offsetTop 严格比较会把全部分类误塞进「更多」。
-        // 单行/多行由后台设置决定：多行时 SSR 不渲染 moreWrapper，本逻辑不会执行。
-        void navContainer.offsetWidth; // 强制布局，避免正式环境字体未就绪时量到 0
-        return navContainer.scrollHeight <= navContainer.clientHeight + 2;
+      const getVisibleItems = () => Array.from(navContainer.children).filter((el) => {
+        if (el === moreWrapper) return !moreWrapper.classList.contains('hidden');
+        return true;
+      });
+
+      // 单行统一为最多 8 个按钮：根分类（含「全部」）+ 「更多」
+      // 有「更多」时根分类最多 7 个；顶部/搜索框上/下位置数量一致
+      const MAX_VISIBLE_BUTTONS = 8;
+      const MAX_VISIBLE_ROOT_WITH_MORE = MAX_VISIBLE_BUTTONS - 1; // 7
+
+      // 与后台预览 collapseOverflowCategories 一致：按可用宽度折叠
+      const measureItemsWidth = () => {
+        const styles = window.getComputedStyle(navContainer);
+        const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
+        return getVisibleItems().reduce((total, item, index) => (
+          total + item.offsetWidth + (index > 0 ? gap : 0)
+        ), 0);
+      };
+
+      const needsCollapse = (availableWidth) => {
+        const count = getCategories().length;
+        // 超过 7 个根分类，或宽度放不下（名称很长/窄屏）
+        if (count > MAX_VISIBLE_ROOT_WITH_MORE) return true;
+        void navContainer.offsetWidth;
+        return measureItemsWidth() > availableWidth;
       };
 
       const moveCategoryToDropdown = (lastCategory) => {
@@ -67,38 +83,45 @@
       };
 
       checkOverflow = () => {
+        // 「更多」打开时不要 reset，否则会拆掉弹出层并关菜单
+        if (!dropdown.classList.contains('hidden')) return;
+
         resetNav();
-        navContainer.style.maxHeight = singleLineMaxHeight;
-        navContainer.style.overflow = 'hidden';
+        // 必须 visible，否则多级 hover 下拉与 #horizontalMoreDropdown 会被裁切
+        navContainer.style.overflow = 'visible';
+        if (navContainer.parentElement) {
+          navContainer.parentElement.style.overflow = 'visible';
+        }
 
         const navChildren = getCategories();
         if (navChildren.length === 0) return;
 
-        // 布局未完成时跳过，避免错误折叠；后续 fonts/ResizeObserver 会再算
-        if (navContainer.clientWidth < 48) {
-          navContainer.style.overflow = 'visible';
-          return;
-        }
+        const availableWidth = navContainer.clientWidth || navContainer.parentElement?.clientWidth || 0;
+        // 布局未完成时跳过，后续 ResizeObserver / fonts 会再算
+        if (availableWidth < 48) return;
 
-        // 不显示「更多」时已能单行放下，保持全部可见
-        if (fitsSingleLine()) {
-          navContainer.style.overflow = 'visible';
-          return;
-        }
+        // 1) 根分类 >7 → 先收到 7 个，保证各位置统一为 7+更多=8
+        // 2) 宽度仍不够（≤7 但名称很长/窄屏）→ 继续按宽度收，至少保留 1 个
+        void navContainer.offsetWidth;
+        if (!needsCollapse(availableWidth)) return;
 
         moreWrapper.classList.remove('hidden');
 
-        // 从末尾移入下拉，直到单行可容纳（分类 + 更多）
-        while (getCategories().length > 1 && !fitsSingleLine()) {
-          moveCategoryToDropdown(getCategories()[getCategories().length - 1]);
+        while (getCategories().length > MAX_VISIBLE_ROOT_WITH_MORE) {
+          const cats = getCategories();
+          moveCategoryToDropdown(cats[cats.length - 1]);
         }
 
-        // 禁止只剩「···」：若一个分类都没有，至少还原一个
+        while (getCategories().length > 1 && measureItemsWidth() > availableWidth) {
+          const cats = getCategories();
+          moveCategoryToDropdown(cats[cats.length - 1]);
+        }
+
+        // 禁止只剩「···」
         if (getCategories().length === 0) {
           restoreCategoryFromDropdown();
         }
 
-        // 仍放不下时，继续保持至少一个分类 + 更多（允许轻微溢出）由 overflow 控制
         const activeInDropdown = dropdown.querySelector('.active');
         if (activeInDropdown) {
           moreBtn.classList.add('active');
@@ -108,8 +131,6 @@
           moreBtn.classList.remove('active', 'text-primary-600', 'bg-secondary-100');
           moreBtn.classList.add('inactive');
         }
-
-        navContainer.style.overflow = 'visible';
       };
 
       const scheduleOverflowCheck = () => {
@@ -117,7 +138,7 @@
         window.resizeTimer = setTimeout(checkOverflow, 50);
       };
 
-      // 首屏多次测量：覆盖字体加载与异步布局（正式环境比本地更易晚就绪）
+      // 首屏多次测量：覆盖字体加载与异步布局
       requestAnimationFrame(() => {
         requestAnimationFrame(checkOverflow);
       });
@@ -135,13 +156,16 @@
       }
 
       moreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         const isHidden = dropdown.classList.contains('hidden');
         if (isHidden) {
           dropdown.classList.remove('hidden');
+          dropdown.classList.add('show');
           document.body.classList.add('menu-open');
         } else {
           dropdown.classList.add('hidden');
+          dropdown.classList.remove('show');
           document.body.classList.remove('menu-open');
         }
       });
@@ -150,6 +174,7 @@
         const link = e.target.closest('a');
         if (link) {
           dropdown.classList.add('hidden');
+          dropdown.classList.remove('show');
           document.body.classList.remove('menu-open');
         }
       });
@@ -157,6 +182,7 @@
       document.addEventListener('click', (e) => {
         if (!dropdown.contains(e.target) && !moreBtn.contains(e.target)) {
           dropdown.classList.add('hidden');
+          dropdown.classList.remove('show');
           document.body.classList.remove('menu-open');
         }
       });

@@ -259,19 +259,42 @@ test('style three search focus suppresses the transient Tailwind ring', () => {
   assert.match(css, /body\.mobile-page-style3 \.search-input-target:focus,[\s\S]*?border-color:\s*transparent\s*!important;[\s\S]*?--tw-ring-shadow:\s*0 0 #0000\s*!important/);
 });
 
-test('horizontal category overflow uses scroll height and keeps at least one category', () => {
-  const source = readFileSync('public/js/home-category-nav.js', 'utf8');
+test('category nav keeps overflow visible so dropdowns are not clipped', () => {
+  const homeCss = readFileSync('public/css/style.css', 'utf8');
+  const indexSource = readFileSync('functions/index.js', 'utf8');
+  const navSource = readFileSync('public/js/home-category-nav.js', 'utf8');
 
-  // 用 scrollHeight/clientHeight 判断单行，避免风格三 height:auto 时 offsetTop 误判
-  assert.match(source, /scrollHeight\s*<=\s*navContainer\.clientHeight/);
-  assert.match(source, /fitsSingleLine/);
-  assert.match(source, /getCategories\(\)\.length === 0/);
+  assert.match(homeCss, /#horizontalCategoryNav[\s\S]*?overflow:\s*visible\s*!important/);
+  assert.match(indexSource, /horizontalCategoryNavOverflowClass = 'overflow-visible'/);
+  // 打开「更多」时跳过 checkOverflow，避免 reset 拆掉弹出层
+  assert.match(navSource, /dropdown\.classList\.contains\('hidden'\)/);
+});
+
+test('horizontal category overflow matches preview width-based collapse', () => {
+  const source = readFileSync('public/js/home-category-nav.js', 'utf8');
+  const homeCss = readFileSync('public/css/style.css', 'utf8');
+  const indexSource = readFileSync('functions/index.js', 'utf8');
+
+  // 与后台预览一致：按可用宽度折叠，单行 nowrap
+  assert.match(source, /measureItemsWidth/);
+  assert.match(source, /MAX_VISIBLE_BUTTONS\s*=\s*8/);
+  assert.match(source, /MAX_VISIBLE_ROOT_WITH_MORE\s*=\s*MAX_VISIBLE_BUTTONS\s*-\s*1/);
+  // ≤7 个时仍要按宽度折叠，与预览一致
+  assert.match(source, /needsCollapse\(availableWidth\)/);
+  assert.match(source, /measureItemsWidth\(\) > availableWidth/);
+  const previewNav = readFileSync('public/js/admin-settings-preview-nav.js', 'utf8');
+  assert.match(previewNav, /MAX_VISIBLE_BUTTONS\s*=\s*8/);
+  assert.match(previewNav, /MAX_VISIBLE_ROOT_WITH_MORE/);
+  assert.match(source, /availableWidth/);
   assert.match(source, /restoreCategoryFromDropdown/);
-  assert.match(source, /singleLineMaxHeight/);
   assert.match(source, /document\.fonts/);
   assert.match(source, /ResizeObserver/);
-  // 风格三仍走单行更多折叠，不得整页禁用
-  assert.doesNotMatch(source, /isStyle3NavActive/);
+  assert.match(homeCss, /\.horizontal-category-nav-shell\s*\{[^}]*width:\s*min\(100%, 64rem\)/);
+  assert.match(homeCss, /\.nav-btn\s*\{[^}]*min-width:\s*calc\(4em \+ 2rem\)/);
+  assert.match(homeCss, /body\.desktop-page-style3[\s\S]*?\.nav-btn[\s\S]*?min-width:\s*calc\(4em \+ 2rem\)/);
+  assert.match(indexSource, /is-single-line/);
+  assert.match(indexSource, /flex-nowrap/);
+  assert.doesNotMatch(indexSource, /max-height: 60px/);
 });
 
 test('style three top navigation keeps the single-line overflow menu available', () => {
